@@ -1,0 +1,50 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<h1 class="text-success text-center mt-2">CHI TIẾT SẢN PHẨM</h1>
+<div class="row">
+    <div class="col-md-5 col-6">
+        <img src="{{ product.image }}" class="img-fluid rounded" />
+    </div>
+    <div class="col-md-7 col-6">
+        <h1>{{ product.name }}</h1>
+        <h3 class="text-danger">{{ product.price }} VNĐ</h3>
+        <button class="btn btn-danger" onclick="addToCart({{ product.id }}, '{{ product.name }}', {{ product.price }})">Đặt hàng</button>
+    </div>
+</div>
+
+{% if current_user.is_authenticated %}
+<div class="mt-2">
+    <textarea class="form-control" rows="5" id="comment" name="text" placeholder="Nội dung bình luận..."></textarea>
+    <button class="btn btn-success mt-1" onclick="addComment({{ product.id }})">Thêm bình luận</button>
+</div>
+{% else %}
+<p>Vui lòng <a href="/login?next=/products/{{ product.id }}">đăng nhập</a> để bình luận!</p>
+{% endif %}
+
+
+<ul class="list-group mt-2" id="comments">
+    {% for c in comments %}
+    <li class="list-group-item">
+        <div class="row">
+            <div class="col-md-1 col-4">
+                <img src="{{ c.user.avatar }}" class="img-fluid rounded-circle" />
+            </div>
+            <div class="col-md-11 col-8">
+                <p>{{ c.content }}</p>
+                <p class="date">{{ c.created_date }}</p>
+            </div>
+        </div>
+
+    </li>
+    {% endfor %}
+</ul>
+
+<script>
+    window.onload = function() {
+        let dates = document.getElementsByClassName("date");
+        for (let d of dates)
+            d.innerText = moment(d.innerText).locale("vi").fromNow();
+    }
+</script>
+{% endblock %}

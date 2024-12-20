@@ -1,12 +1,18 @@
-from app.models import Category, Product, User, UserRole
-from app import app, db
-from flask_admin import Admin, BaseView, expose
+from app.models import Category, Product, User, UserRole, Receipt, ReceiptDetails
+from app import app, db, dao
+from flask_admin import Admin, BaseView, expose, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_login import current_user, logout_user
 from flask import redirect
 
 
-admin = Admin(app=app, name='eCommerce Admin', template_mode='bootstrap4')
+class MyAdminIndexView(AdminIndexView):
+    @expose('/')
+    def index(self):
+        return self.render('admin/index.html', stats=dao.count_products_by_cate())
+
+
+admin = Admin(app=app, name='eCommerce Admin', template_mode='bootstrap4', index_view=MyAdminIndexView())
 
 
 class AdminView(ModelView):
@@ -42,11 +48,14 @@ class LogoutView(AuthenticatedView):
 class StatsView(AuthenticatedView):
     @expose('/')
     def index(self):
-        return self.render('admin/stats.html')
+        return self.render('admin/stats.html',
+                           stats=dao.revenue_stats(), stats2=dao.revenue_time())
 
 
 admin.add_view(CategoryView(Category, db.session))
 admin.add_view(ProductView(Product, db.session))
 admin.add_view(AdminView(User, db.session))
+admin.add_view(AdminView(Receipt, db.session))
+admin.add_view(AdminView(ReceiptDetails, db.session))
 admin.add_view(StatsView(name='Thống kê'))
 admin.add_view(LogoutView(name='Đăng xuất'))

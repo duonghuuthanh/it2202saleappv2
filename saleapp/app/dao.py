@@ -1,7 +1,10 @@
-from app.models import Category, Product, User
+from app.models import Category, Product, User, Receipt, ReceiptDetails, Comment
 from app import app, db
 import hashlib
 import cloudinary.uploader
+from flask_login import current_user
+from sqlalchemy import func
+from datetime import datetime
 
 
 def load_categories():
@@ -54,3 +57,57 @@ def add_user(name, username, password, avatar=None):
 
     db.session.add(u)
     db.session.commit()
+
+
+def add_receipt(cart):
+    if cart:
+        r = Receipt(user=current_user)
+        db.session.add(r)
+
+        for c in cart.values():
+            d = ReceiptDetails(quantity=c['quantity'], unit_price=c['price'],
+                               receipt=r, product_id=c['id'])
+            db.session.add(d)
+
+        db.session.commit()
+
+
+def add_comment(content, product_id):
+    c = Comment(content=content, product_id=product_id, user=current_user)
+    db.session.add(c)
+    db.session.commit()
+
+    return c
+
+
+def revenue_stats():
+    return db.session.query(Product.id, Product.name, func.sum(ReceiptDetails.quantity * ReceiptDetails.unit_price))\
+             .join(ReceiptDetails, ReceiptDetails.product_id.__eq__(Product.id)).group_by(Product.id).all()
+
+
+def revenue_time(time='month', year=datetime.now().year):
+    return db.session.query(func.extract(time, Receipt.created_date),
+                            func.sum(ReceiptDetails.quantity * ReceiptDetails.unit_price))\
+        .join(ReceiptDetails, ReceiptDetails.receipt_id.__eq__(Receipt.id))\
+        .filter(func.extract("year", Receipt.created_date).__eq__(year))\
+        .group_by(func.extract(time, Receipt.created_date))\
+        .order_by(-func.extract(time, Receipt.created_date)).all()
+
+
+def count_products_by_cate():
+    return db.session.query(Category.id, Category.name, func.count(Product.id))\
+        .join(Product, Product.category_id.__eq__(Category.id), isouter=True)\
+        .group_by(Category.id).all()
+
+
+def get_product_by_id(id):
+    return Product.query.get(id)
+
+
+def load_comments(product_id):
+    return Comment.query.filter(Comment.product_id.__eq__(product_id)).order_by(-Comment.id).all()
+
+
+if __name__ == '__main__':
+    with app.app_context():
+        print(count_products_by_cate())

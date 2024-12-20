@@ -4,25 +4,76 @@
 <h1 class="text-center text-danger mt-1">THÔNG KÊ BÁO CÁO</h1>
 
 <div class="row">
-    <div class="col-md-7 col-12"></div>
+    <div class="col-md-7 col-12">
+        <table class="table">
+            <tr>
+                <th>Id</th>
+                <th>Tên sản phẩm</th>
+                <th>Doanh thu</th>
+            </tr>
+            {% for s in stats %}
+            <tr>
+                <td>{{ s[0] }}</td>
+                <td>{{ s[1] }}</td>
+                <td>{{ s[2] }} VNĐ</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
     <div class="col-md-5 col-12">
         <canvas id="myChart"></canvas>
     </div>
 </div>
 
+<div class="row">
+    <div class="col-md-7 col-12">
+        <table class="table">
+            <tr>
+                <th>Thời gian</th>
+
+                <th>Doanh thu</th>
+            </tr>
+            {% for s in stats2 %}
+            <tr>
+                <td>{{ s[0] }}</td>
+                <td>{{ s[1] }} VNĐ</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="col-md-5 col-12">
+        <canvas id="myChart2"></canvas>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    window.onload = function() {
-         const ctx = document.getElementById('myChart');
+    let data = [];
+    let labels = [];
 
-          new Chart(ctx, {
+    let data2 = [];
+    let labels2 = [];
+
+    {% for s in stats %}
+    data.push({{ s[2] }});
+    labels.push('{{ s[1] }}')
+    {% endfor %}
+
+    {% for s in stats2 %}
+    data2.push({{ s[1] }});
+    labels2.push('{{ s[0] }}')
+    {% endfor %}
+
+    function draw(ctx, data, labels) {
+    new Chart(ctx, {
             type: 'bar',
             data: {
-              labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+              labels: labels,
               datasets: [{
-                label: '# of Votes',
-                data: [12, 19, 3, 5, 2, 3],
-                borderWidth: 1
+                label: '# Doanh thu',
+                data: data,
+                borderWidth: 1,
+                backgroundColor: ['red', 'green', 'blue', 'gold', 'brown']
               }]
             },
             options: {
@@ -33,6 +84,14 @@
               }
             }
           });
+    }
+
+    window.onload = function() {
+         const ctx = document.getElementById('myChart');
+         const ctx2 = document.getElementById('myChart2');
+        draw(ctx, data, labels);
+        draw(ctx2, data2, labels2);
+
     }
 </script>
 {% endblock %}

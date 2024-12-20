@@ -18,6 +18,27 @@ def index():
     return render_template('index.html', products=prods, pages=math.ceil(total/page_size))
 
 
+@app.route('/products/<int:product_id>')
+def details(product_id):
+    return render_template('details.html',
+                           product=dao.get_product_by_id(product_id),
+                           comments=dao.load_comments(product_id))
+
+
+@app.route('/api/products/<int:product_id>/comments', methods=['post'])
+def add_comment(product_id):
+    content = request.json.get('content')
+    c = dao.add_comment(content, product_id)
+
+    return jsonify({
+        'content': c.content,
+        'created_date': c.created_date,
+        'user': {
+            'avatar': c.user.avatar
+        }
+    })
+
+
 @app.route("/login", methods=['get', 'post'])
 def login_process():
     if request.method.__eq__('POST'):
@@ -27,7 +48,9 @@ def login_process():
         u = dao.auth_user(username=username, password=password)
         if u:
             login_user(u)
-            return redirect('/')
+
+            next = request.args.get('next')
+            return redirect(next if next else '/')
 
     return render_template('login.html')
 
@@ -110,6 +133,29 @@ def add_to_cart():
     return jsonify(utils.stats_cart(cart))
 
 
+@app.route('/api/carts/<product_id>', methods=['put'])
+def update_cart(product_id):
+    cart = session.get('cart')
+    if cart and product_id in cart:
+        quantity = int(request.json.get('quantity', 0))
+        cart[product_id]['quantity'] = quantity
+
+    session['cart'] = cart
+
+    return jsonify(utils.stats_cart(cart))
+
+
+@app.route('/api/carts/<product_id>', methods=['delete'])
+def delete_cart(product_id):
+    cart = session.get('cart')
+    if cart and product_id in cart:
+        del cart[product_id]
+
+    session['cart'] = cart
+
+    return jsonify(utils.stats_cart(cart))
+
+
 @app.route('/cart')
 def cart():
     return render_template('cart.html')
@@ -121,6 +167,18 @@ def common_context_params():
         'categories': dao.load_categories(),
         'cart_stats': utils.stats_cart(session.get('cart'))
     }
+
+
+@app.route('/api/pay', methods=['post'])
+def pay():
+    cart = session.get('cart')
+    try:
+        dao.add_receipt(cart)
+    except:
+        return jsonify({'status': 500})
+    else:
+        del session['cart']
+        return jsonify({'status': 200})
 
 
 @login.user_loader
